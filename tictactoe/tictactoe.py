@@ -5,12 +5,13 @@ Tic Tac Toe Player
 import math
 import copy
 
-X = "X"
-O = "O"
-EMPTY = None
+try:
+    from .ttt_types import X, O, EMPTY, Board, Action, PlayerMark, GameState
+except (ImportError, ValueError):
+    from ttt_types import X, O, EMPTY, Board, Action, PlayerMark, GameState
 
 
-def initial_state() -> list[list[str|None]]:
+def initial_state() -> Board:
     """
     Returns starting state of the board.
     """
@@ -19,7 +20,7 @@ def initial_state() -> list[list[str|None]]:
             [EMPTY, EMPTY, EMPTY]]
 
 
-def player(board: list[list[str|None]]) -> str|None:
+def player(board: Board) -> PlayerMark:
     """
     Returns player who has the next turn on a board.
     """
@@ -30,7 +31,7 @@ def player(board: list[list[str|None]]) -> str|None:
     return X if (empty_count & 1) else O
 
 
-def actions(board: list[list[str|None]]) -> set[tuple[int,int]]:
+def actions(board: Board) -> set[Action]:
     """
     Returns set of all possible actions (i, j) available on the board.
     """
@@ -42,7 +43,7 @@ def actions(board: list[list[str|None]]) -> set[tuple[int,int]]:
     return empty_cells
 
 
-def result(board: list[list[str|None]], action: tuple[int,int]) -> list[list[str|None]]:
+def result(board: Board, action: Action) -> Board:
     """
     Returns the board that results from making move (i, j) on the board.
     """
@@ -58,7 +59,7 @@ def result(board: list[list[str|None]], action: tuple[int,int]) -> list[list[str
     return new_board
 
 
-def winner(board: list[list[str|None]]) -> str|None:
+def winner(board: Board) -> PlayerMark | None:
     """
     Returns the winner of the game, if there is one.
     """
@@ -80,14 +81,14 @@ def winner(board: list[list[str|None]]) -> str|None:
     return None
 
 
-def terminal(board: list[list[str|None]]) -> bool:
+def terminal(board: Board) -> bool:
     """
     Returns True if game is over, False otherwise.
     """
     return winner(board) is not None or len(actions(board)) == 0
 
 
-def utility(board: list[list[str|None]]) -> int:
+def utility(board: Board) -> int:
     """
     Returns 1 if X has won the game, -1 if O has won, 0 otherwise.
     """
@@ -99,7 +100,7 @@ def utility(board: list[list[str|None]]) -> int:
     return 0
 
 
-def minimax(board: list[list[str|None]]):
+def minimax(board: Board) -> Action | None:
     """
     Returns the optimal action for the current player on the board.
     """
@@ -107,30 +108,64 @@ def minimax(board: list[list[str|None]]):
         return None 
 
     if player(board) == X:
-        # wants to maximise endgame
-        maxx = -math.inf
+        # wants to maximise endgame score
+        max_score = -math.inf
         best_action: tuple[int,int]|None = None
         for action in actions(board):
-            process_board = result(board, action)
-            endgame_value:int = adversarial_search(process_board)
-            if endgame_value > maxx:
-                maxx = endgame_value
+            next_board = result(board, action)
+            endgame_value:int = adversarial_search(next_board)
+            if endgame_value > max_score:
+                max_score = endgame_value
                 best_action = action 
-                if maxx == 1:
+                if max_score == 1:
                     break
         return best_action
 
+    if player(board) == O:
+        # wants to maximise endgame score
+        min_score = math.inf
+        best_action: tuple[int,int]|None = None
+        for action in actions(board):
+            next_board = result(board, action)
+            endgame_value:int = adversarial_search(next_board)
+            if endgame_value < min_score:
+                min_score = endgame_value
+                best_action = action 
+                if min_score == -1:
+                    break
+        return best_action
 
         
         
             
 
-def adversarial_search(board: list[list[str|None]]) -> int:
+def adversarial_search(board: Board) -> int:
     """
-    Returns endgame value of board
+    Returns endgame value of board simulating optimal play from both players
     """
     if terminal(board):
         return utility(board)
     
-    best_action = minimax(board)
-    next_board = result(board, best_action)
+    if player(board) == X:
+        max_score = -math.inf 
+        for action in actions(board):
+            next_board = result(board, action)
+            score = adversarial_search(next_board)
+            if score > max_score:
+                max_score = score 
+                if score == 1:
+                    break
+        return int(max_score)
+    
+    if player(board) == O:
+        min_score = math.inf 
+        for action in actions(board):
+            next_board = result(board, action)
+            score = adversarial_search(next_board)
+            if score < min_score:
+                min_score = score 
+                if score == -1:
+                    break
+        return int(min_score)      
+
+    raise Exception("Invalid path for tictactoe rules")  
