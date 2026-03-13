@@ -5,6 +5,23 @@ Tic Tac Toe Player
 import math
 import copy
 
+# Global counter for explored nodes
+_explored_nodes = 0
+
+def get_explored_nodes() -> int:
+    """Returns the number of nodes explored in the last search."""
+    return _explored_nodes
+
+def _reset_explored_nodes():
+    """Resets the explored nodes counter."""
+    global _explored_nodes
+    _explored_nodes = 0
+
+def _increment_explored_nodes():
+    """Increments the explored nodes counter."""
+    global _explored_nodes
+    _explored_nodes += 1
+
 try:
     from .ttt_types import X, O, EMPTY, Board, Action, PlayerMark, GameState
 except (ImportError, ValueError):
@@ -103,69 +120,136 @@ def utility(board: Board) -> int:
 def minimax(board: Board) -> Action | None:
     """
     Returns the optimal action for the current player on the board.
+    Sets global _explored_nodes to total nodes visited.
     """
+    _reset_explored_nodes()
     if terminal(board):
         return None 
 
-    if player(board) == X:
-        # wants to maximise endgame score
+    curr_player = player(board)
+    best_action: Action | None = None
+
+    if curr_player == X:
         max_score = -math.inf
-        best_action: tuple[int,int]|None = None
         for action in actions(board):
-            next_board = result(board, action)
-            endgame_value:int = adversarial_search(next_board)
-            if endgame_value > max_score:
-                max_score = endgame_value
+            score = adversarial_search(result(board, action))
+            if score > max_score:
+                max_score = score
                 best_action = action 
                 if max_score == 1:
                     break
         return best_action
 
-    if player(board) == O:
-        # wants to maximise endgame score
+    else: # Player O
         min_score = math.inf
-        best_action: tuple[int,int]|None = None
         for action in actions(board):
-            next_board = result(board, action)
-            endgame_value:int = adversarial_search(next_board)
-            if endgame_value < min_score:
-                min_score = endgame_value
+            score = adversarial_search(result(board, action))
+            if score < min_score:
+                min_score = score
                 best_action = action 
                 if min_score == -1:
                     break
         return best_action
 
-        
-        
-            
 
 def adversarial_search(board: Board) -> int:
     """
-    Returns endgame value of board simulating optimal play from both players
+    Returns endgame value of board simulating optimal play from both players.
+    Increments global _explored_nodes for each node visited.
     """
+    _increment_explored_nodes()
     if terminal(board):
         return utility(board)
     
-    if player(board) == X:
+    curr_player = player(board)
+    
+    if curr_player == X:
         max_score = -math.inf 
         for action in actions(board):
-            next_board = result(board, action)
-            score = adversarial_search(next_board)
-            if score > max_score:
-                max_score = score 
-                if score == 1:
-                    break
+            score = adversarial_search(result(board, action))
+            max_score = max(max_score, score)
+            if max_score == 1:
+                break
         return int(max_score)
     
-    if player(board) == O:
+    else: # Player O
         min_score = math.inf 
         for action in actions(board):
-            next_board = result(board, action)
-            score = adversarial_search(next_board)
+            score = adversarial_search(result(board, action))
+            min_score = min(min_score, score)
+            if min_score == -1:
+                break
+        return int(min_score)
+
+
+def minimax_alpha_beta(board: Board) -> Action | None:
+    """
+    Returns the optimal action using Alpha-Beta pruning.
+    Sets global _explored_nodes to total nodes visited.
+    """
+    _reset_explored_nodes()
+    if terminal(board):
+        return None
+
+    curr_player = player(board)
+    best_action: Action | None = None
+    alpha = -math.inf
+    beta = math.inf
+
+    if curr_player == X:
+        max_score = -math.inf
+        for action in actions(board):
+            score = adversarial_search_alpha_beta(result(board, action), alpha, beta)
+            if score > max_score:
+                max_score = score
+                best_action = action
+            alpha = max(alpha, max_score)
+            if beta <= alpha:
+                break
+        return best_action
+
+    else: # Player O
+        min_score = math.inf
+        for action in actions(board):
+            score = adversarial_search_alpha_beta(result(board, action), alpha, beta)
             if score < min_score:
-                min_score = score 
-                if score == -1:
-                    break
-        return int(min_score)      
+                min_score = score
+                best_action = action
+            beta = min(beta, min_score)
+            if beta <= alpha:
+                break
+        return best_action
+
+
+def adversarial_search_alpha_beta(board: Board, alpha: float, beta: float) -> int:
+    """
+    Recursive helper for Alpha-Beta pruning.
+    Increments global _explored_nodes for each node visited.
+    """
+    _increment_explored_nodes()
+    if terminal(board):
+        return utility(board)
+    
+    curr_player = player(board)
+    
+    if curr_player == X:
+        max_score = -math.inf
+        for action in actions(board):
+            score = adversarial_search_alpha_beta(result(board, action), alpha, beta)
+            max_score = max(max_score, score)
+            alpha = max(alpha, max_score)
+            if beta <= alpha:
+                break
+        return int(max_score)
+    
+    else: # Player O
+        min_score = math.inf
+        for action in actions(board):
+            score = adversarial_search_alpha_beta(result(board, action), alpha, beta)
+            min_score = min(min_score, score)
+            beta = min(beta, min_score)
+            if beta <= alpha:
+                break
+        return int(min_score)
 
     raise Exception("Invalid path for tictactoe rules")  
