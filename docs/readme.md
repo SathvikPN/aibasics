@@ -13,3 +13,10 @@ from `degrees`:
 - you cannot use a class name as a type hint inside that same class's definition unless you enclose it in quotes (e.g., 'Node') or use a special import.
 local checks passed but online checks erred with unable to import Node.
 - add spectial import for resolution. ``` from __future__ import annotations ```
+
+from `tictactoe`:
+- pylance fails to recognise initial_state(tictactoe.py) at runner.py  
+reason: tictactoe folder without init.py is just a namespace package, holder for submodules  
+fix: adding init.py (imports within), tictactoe folder is now python module. all init.py imports are available throughout module files.  
+
+- test driven dev. grouped tests for each function.
