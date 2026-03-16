@@ -1,4 +1,6 @@
 import sys
+import heapq
+
 
 class Node():
     def __init__(self, state, parent, action):
@@ -38,6 +40,40 @@ class QueueFrontier(StackFrontier):
             node = self.frontier[0]
             self.frontier = self.frontier[1:]
             return node
+
+class AStarFrontier(StackFrontier):
+    def __init__(self, goal):
+        self.frontier = []
+        self.goal = goal
+        self.counter = 0
+
+    def add(self, node):
+        # Calculate cost so far (g) by tracing parents safely without changing Node class
+        g = 0
+        curr = node
+        while curr.parent is not None:
+            g += 1
+            curr = curr.parent
+            
+        # heuristic (h) is manhattan distance from current state to goal
+        h = abs(node.state[0] - self.goal[0]) + abs(node.state[1] - self.goal[1])
+        f = g + h
+        
+        # Use counter to break ties if f-scores are equal 
+        heapq.heappush(self.frontier, (f, self.counter, node))
+        self.counter += 1
+
+    def contains_state(self, state):
+        return any(item[2].state == state for item in self.frontier)
+
+    def empty(self):
+        return len(self.frontier) == 0
+
+    def remove(self):
+        if self.empty():
+            raise Exception("empty frontier")
+        else:
+            return heapq.heappop(self.frontier)[2]
 
 class Maze():
 
@@ -116,7 +152,7 @@ class Maze():
         return result
 
 
-    def solve(self):
+    def solve(self, search_algo="bfs"):
         """Finds a solution to maze, if one exists."""
 
         # Keep track of number of states explored
@@ -124,7 +160,16 @@ class Maze():
 
         # Initialize frontier to just the starting position
         start = Node(state=self.start, parent=None, action=None)
-        frontier = StackFrontier()
+        
+        if search_algo == "dfs":
+            frontier = StackFrontier()
+        elif search_algo == "bfs":
+            frontier = QueueFrontier()
+        elif search_algo == "astar":
+            frontier = AStarFrontier(self.goal)
+        else:
+            raise Exception("Unknown Search Algorithm")
+            
         frontier.add(start)
 
         # Initialize an empty explored set
@@ -215,14 +260,18 @@ class Maze():
         img.save(filename)
 
 
-if len(sys.argv) != 2:
-    sys.exit("Usage: python maze.py maze.txt")
+if len(sys.argv) not in [2, 3]:
+    sys.exit("Usage: python maze.py maze.txt [bfs|dfs|astar]")
+
+algo = "bfs"
+if len(sys.argv) == 3:
+    algo = sys.argv[2].lower()
 
 m = Maze(sys.argv[1])
 print("Maze:")
 m.print()
-print("Solving...")
-m.solve()
+print(f"Solving using {algo.upper()}...")
+m.solve(search_algo=algo)
 print("States Explored:", m.num_explored)
 print("Solution:")
 m.print()
