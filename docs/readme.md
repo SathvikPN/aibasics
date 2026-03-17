@@ -36,3 +36,15 @@ Why do we even need the counter? Why not just `heapq.heappush(self.frontier, (f,
 Index `1` would be the custom Node object without `__lt__` (less than) method!  
 comparison error `TypeError: '<' not supported between instances of 'Node' and 'Node'`.
 - python is famously lazy with tuple comparison; as soon as it finds a definitive difference at index 0 or index 1, it immediately stops comparing and never even glances at the un-comparable Node
+
+
+
+`2.5 x 10^6` 
+``` 
+$x^2$
+
+number^{ax+b}
+
+```
+
+x<sup>sup</sup> 
