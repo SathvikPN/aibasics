@@ -129,7 +129,7 @@ class And(Sentence):
     def symbols(self):
         return set.union(*[conjunct.symbols() for conjunct in self.conjuncts])
 
-
+# inclusive OR, not exclusive OR 
 class Or(Sentence):
     def __init__(self, *disjuncts):
         for disjunct in disjuncts:
