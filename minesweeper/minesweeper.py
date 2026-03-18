@@ -50,7 +50,6 @@ class Minesweeper():
         print("--" * self.width + "-")
 
     def is_mine(self, cell):
-        print(f"{cell} {type(cell)}")
         i, j = cell
         return self.board[i][j]
 
@@ -221,6 +220,16 @@ class MinesweeperAI():
                     # exclude reference cell itself 
                     if (y,x) == cell:
                         continue
+                    
+                    # Note 1 =========================================================
+                    # skip cells that are already inferred safe from knowledge
+                    if (y,x) in self.safes:
+                        continue
+                    # skip cells that are already inferred mines from knowledge
+                    if (y,x) in self.mines:
+                        count -= 1
+                        continue
+
 
                     if (y,x) not in self.moves_made:
                         unvisited_cells.add((y,x))
@@ -259,20 +268,25 @@ class MinesweeperAI():
 
         # 5) add any new sentences to the AI's knowledge base
         # if they can be inferred from existing knowledge
-        # so far we have updated sentences based on its own sentence cells
-        # infer new sentence if any, compared to knowledge cells from other sentences
-        for sentence in self.knowledge:
-            inferred_sentence = copy.deepcopy(sentence)
-            for cell in sentence.cells:
-                if cell in self.safes:
-                    inferred_sentence.cells.remove(cell)
-                if cell in self.mines:
-                    inferred_sentence.cells.remove(cell)
-                    inferred_sentence.count -= 1
-            if not inferred_sentence == sentence:
-                self.knowledge.append(inferred_sentence)
 
+        # {A,B,C,D} = 2
+        # {A,B} = 1
+        # infer {C,D} = 1
+        for sentenceA in self.knowledge:
+            for sentenceB in self.knowledge:
+                if sentenceA == sentenceB:
+                    continue
+                
+                # Note2: if a sentence is subset of another sentence ==> infer new sentence
+                # sentenceA is smaller and subset of bigger sentenceB
+                if sentenceA.cells.issubset(sentenceB.cells):
+                    inferred_sentence = Sentence(
+                        sentenceB.cells.difference(sentenceA.cells),
+                        sentenceB.count - sentenceA.count,
+                    )
 
+                    if inferred_sentence not in self.knowledge:
+                        self.knowledge.append(inferred_sentence) 
 
 
     def make_safe_move(self):
@@ -290,7 +304,7 @@ class MinesweeperAI():
                 return cell
         return None
 
-    def make_random_move(self):
+    def make_random_move(self) -> tuple(int, int):
         """
         Returns a move to make on the Minesweeper board.
         Should choose randomly among cells that:
@@ -300,9 +314,12 @@ class MinesweeperAI():
         # raise NotImplementedError
         for y in range(self.height):
             for x in range(self.width):
-                if {y,x} in self.moves_made:
+                if (y,x) in self.moves_made:
                     continue
-                if {y,x} in self.mines:
+                if (y,x) in self.mines:
                     continue
-                return {y,x}
+
+                # error: return {y,x} returns set but when y,x=0,0 set({0,0}) == {0} != (0,0) ==> unexpected data at runner.py
+                # fix: return (y,x) instead of {y,x}
+                return (y,x)
         return None

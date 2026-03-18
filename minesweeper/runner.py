@@ -221,7 +221,6 @@ while True:
 
     # Make move and update AI knowledge
     if move:
-        print(f"is_mine: move={move} bool={True if move else False}")
         if game.is_mine(move):
             lost = True
         else:
